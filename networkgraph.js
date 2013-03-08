@@ -3,11 +3,13 @@ NetworkGraph = function(args) {
 
   this.element    = args.element || 'body';
   this.node_radius = args.node_radius || 6;
+  this.decay_seconds = args.decay_seconds;
 
   var nodes = [],
       links = [],
       node_mapping = {},
-      link_mapping = {};
+      link_mapping = {},
+      decay_queue = [];
 
   var self = this;
 
@@ -43,12 +45,15 @@ NetworkGraph = function(args) {
         this.setAttribute('x2', d.target.x - dx);
         this.setAttribute('y2', d.target.y - dy);
 
-        var link_name = d.source.name + '-' + d.target.name;
-//        var element = this;
+        var link_name = d.source.name + '_' + d.target.name;
         this.style.setProperty('stroke-width', link_mapping[link_name] + (link_mapping[link_name] * 0.01));
-//        setTimeout(function() {
-//          element.style.setProperty('stroke-width', link_mapping[link_name] - (link_mapping[link_name] * 0.01));
-//        },3000);
+        if (self.decay_seconds) {
+          decay_queue.push({
+            exp: +new Date + (self.decay_seconds * 1000),
+            element: this,
+            link_name: link_name,
+          })
+        }
     });
 
     self.node_selection.attr("transform", function(d) {
@@ -124,6 +129,16 @@ NetworkGraph = function(args) {
         .charge(-300)
         .on("tick", tick);
 
+    if (this.decay_seconds) {
+        setInterval(function() {
+          while (decay_queue && decay_queue[0] && decay_queue[0].exp < +new Date) {
+            var next_decay = decay_queue.shift();
+            console.log('decay: ' + next_decay.link_name);
+            d3.select("line#" + next_decay.link_name + '.link')
+              .style('stroke-width', link_mapping[next_decay.link_name] - (link_mapping[next_decay.link_name] * 0.01));
+          }
+        }, 1000);
+    }
   };
 
   this.add_links = function(new_links) {
