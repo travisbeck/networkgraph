@@ -80,10 +80,24 @@ NetworkGraph = function(args) {
     }
 //    console.log("width: " + this.width + " height: " + this.height);
 
-    this.vis = d3.select(this.element)
+    var resize = function() {
+      self.vis.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");
+    }
+
+    var svg = d3.select(this.element)
       .append("svg:svg")
       .attr('width', this.width)
-      .attr('height', this.height);
+      .attr('height', this.height)
+      .attr("pointer-events", "all");
+
+    this.vis = svg.append('svg:g')
+      .call(d3.behavior.zoom().on("zoom", resize))
+      .append('svg:g');
+
+    this.vis.append("svg:rect")
+      .attr("width", this.width)
+      .attr("height", this.height)
+      .attr('fill', 'white');
 
     this.link_selection = this.vis.append("svg:g").selectAll(".link");
     this.node_selection = this.vis.append("svg:g").selectAll(".node");
