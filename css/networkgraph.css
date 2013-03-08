@@ -1,0 +1,33 @@
+/*#graph {
+  height:500px;
+  width:500px;
+  border:red 1px solid;
+}*/
+
+.link {
+  fill: none;
+  stroke: #666;
+  stroke-width: 1.5px;
+  stroke-linecap: square;
+}
+
+marker {
+  fill: #666;
+}
+
+.node {
+  fill: #ccc;
+  stroke: #333;
+  stroke-width: 1.5px;
+}
+
+.label {
+  font: 11px sans-serif;
+  pointer-events: none;
+}
+
+.label.shadow {
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-opacity: .8;
+}

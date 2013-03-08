@@ -1,62 +1,10 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
-    <meta charset="utf-8">
     <title>Network Graph Example</title>
     <script type="text/javascript" src="../deps/d3.v2.js"></script>
     <script type="text/javascript" src="../networkgraph.js"></script>
-    <style type="text/css">
-/*#graph {
-  height:500px;
-  width:500px;
-  border:red 1px solid;
-}*/
-
-line.link {
-  fill: none;
-  stroke: #666;
-  stroke-width: 1.5px;
-}
-
-marker#licensing {
-  fill: green;
-}
-
-marker#suit {
-  fill: #666;
-}
-
-marker#resolved {
-  fill: #666;
-}
-
-line.link.licensing {
-  stroke: green;
-}
-
-line.link.resolved {
-  stroke-dasharray: 0,2 1;
-}
-
-.node {
-  fill: #ccc;
-  stroke: #333;
-  stroke-width: 1.5px;
-}
-
-text {
-  font: 10px sans-serif;
-  pointer-events: none;
-}
-
-text.shadow {
-  stroke: #fff;
-  stroke-width: 3px;
-  stroke-opacity: .8;
-}
-
-    </style>
+	<link type="text/css" rel="stylesheet" href="../css/networkgraph.css">
   </head>
   <body>
     <div id="graph"></div>
@@ -65,35 +13,27 @@ text.shadow {
 
 var people = [
   'Travis',
-  'Tom',
+  'Guy',
   'Larry',
   'Sid',
   'Carl',
   'Barry',
-  'Chalmers',
+  'Bob',
   'Ace',
   'Pete',
   'Smoky',
-  'Guy',
-  'Drew',
-  'Alice',
-  'Bob',
-  'Hans',
-  'Charlie',
-  'Lucy',
-  'Rick',
-  'Stokely',
-  'Bernard',
 ];
 
-var graph = new NetworkGraph();
+var graph = new NetworkGraph({
+	node_radius: 6,
+});
 
 setInterval(function() {
   if(~~(Math.random() * 10) < 1) {
     var source = people[~~(Math.random() * (people.length / 2))];
     var target = people[~~(Math.random() * ((people.length / 2) + (people.length / 2)))];
-    if (source !== target) {
-      graph.add_links([{ source: source, target: target, type: "suit" }]);
+	if (source !== target && source < target) {
+	graph.add_links([{ source: source, target: target }]);
     }
   }
 }, 10);

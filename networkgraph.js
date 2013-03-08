@@ -2,11 +2,12 @@ NetworkGraph = function(args) {
   args = args || {};
 
   this.element    = args.element || 'body';
-  this.node_width = args.node_width || 6;
+  this.node_radius = args.node_radius || 6;
 
   var nodes = [],
       links = [],
-      node_mapping = {};
+      node_mapping = {},
+      link_mapping = {};
 
   var self = this;
 
@@ -30,10 +31,25 @@ NetworkGraph = function(args) {
   };
 
   var tick = function() {
-    self.link_selection.attr("x1", function(d) { return d.source.x; })
-        .attr("y1", function(d) { return d.source.y; })
-        .attr("x2", function(d) { return d.target.x; })
-        .attr("y2", function(d) { return d.target.y; });
+    self.link_selection.each(function(d) {
+        var distance = Math.sqrt(Math.pow(d.target.x - d.source.x, 2) + Math.pow(d.target.y - d.source.y, 2))
+        var ratio = (distance - self.node_radius) / distance;
+
+        var dx = (d.target.x - d.source.x) * ratio;
+        var dy = (d.target.y - d.source.y) * ratio;
+
+        this.setAttribute('x1', d.source.x + dx);
+        this.setAttribute('y1', d.source.y + dy);
+        this.setAttribute('x2', d.target.x - dx);
+        this.setAttribute('y2', d.target.y - dy);
+
+        var link_name = d.source.name + '-' + d.target.name;
+//        var element = this;
+        this.style.setProperty('stroke-width', link_mapping[link_name] + (link_mapping[link_name] * 0.01));
+//        setTimeout(function() {
+//          element.style.setProperty('stroke-width', link_mapping[link_name] - (link_mapping[link_name] * 0.01));
+//        },3000);
+    });
 
     self.node_selection.attr("transform", function(d) {
       return "translate(" + d.x + "," + d.y + ")";
@@ -62,27 +78,25 @@ NetworkGraph = function(args) {
       this.width = args.width;
       this.height = args.height;
     }
-    console.log("width: " + this.width + " height: " + this.height);
+//    console.log("width: " + this.width + " height: " + this.height);
 
     this.vis = d3.select(this.element)
       .append("svg:svg")
       .attr('width', this.width)
       .attr('height', this.height);
 
-    this.link_selection = this.vis.append("svg:g").selectAll("line.link");
-    this.node_selection = this.vis.append("svg:g").selectAll("node");
+    this.link_selection = this.vis.append("svg:g").selectAll(".link");
+    this.node_selection = this.vis.append("svg:g").selectAll(".node");
     this.label_selection = this.vis.append("svg:g").selectAll("g");
 
     // add arrow points
-    this.vis.append("svg:defs").selectAll("marker")
-        .data(["suit", "licensing", "resolved"])
-      .enter().append("svg:marker")
-        .attr("id", String)
+    this.vis.append("svg:defs").append("svg:marker")
+        .attr("id", 'arrow')
         .attr("viewBox", "0 -5 10 10")
-        .attr("refX", 16)
+        .attr("refX", 10)
         .attr("refY", 0)
-        .attr("markerWidth", 6)
-        .attr("markerHeight", 6)
+        .attr("markerWidth", 4)
+        .attr("markerHeight", 4)
         .attr("markerUnits","strokeWidth")
         .attr("orient", "auto")
       .append("svg:path")
@@ -101,35 +115,45 @@ NetworkGraph = function(args) {
   this.add_links = function(new_links) {
     // map the new links into our existing distinct node mapping
     new_links.forEach(function(link) {
-      if (node_mapping[link.source]) {
-        link.source = node_mapping[link.source];
+      var link_name = link.source.toString() + '-' + link.target.toString();
+      if (link_mapping[link_name]) {
+        // if the link already exists, increase weight of both nodes
+        // and make the lines bigger
+        nodes[node_mapping[link.source].index].weight++;
+        nodes[node_mapping[link.target].index].weight++;
       } else {
-        node_mapping[link.source] = { name: link.source };
-        nodes.push(node_mapping[link.source]);
-        link.source = node_mapping[link.source];
+        if (node_mapping[link.source]) {
+          link.source = node_mapping[link.source];
+        } else {
+          node_mapping[link.source] = { name: link.source, index: nodes.length };
+          nodes.push(node_mapping[link.source]);
+          link.source = node_mapping[link.source];
+        }
+        if (node_mapping[link.target]) {
+          link.target = node_mapping[link.target];
+        } else {
+          node_mapping[link.target] = { name: link.target, index: nodes.length };
+          nodes.push(node_mapping[link.target]);
+          link.target = node_mapping[link.target];
+        }
+        links.push(link);
       }
-      if (node_mapping[link.target]) {
-        link.target = node_mapping[link.target];
-      } else {
-        node_mapping[link.target] = {name: link.target};
-        nodes.push(node_mapping[link.target]);
-        link.target = node_mapping[link.target];
-      }
-      links.push(link);
+      link_mapping[link_name] = link_mapping[link_name] + 1 || 1;
     });
 
     this.link_selection = this.link_selection.data(links, function(d) { return d.source.name + "-" + d.target.name; });
     this.link_selection.enter()
         .append("line")
-        .attr("class", function(d) { return "link " + d.type; })
-        .attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
+        .attr("id", function (d) { return d.source.name + '_' + d.target.name })
+        .attr("class", "link")
+        .attr("marker-end", function(d) { return "url(#arrow)"; });
     this.link_selection.exit().remove();
 
     this.node_selection = this.node_selection.data(nodes, function(d) { return d.name; });
     this.node_selection.enter()
         .append("svg:circle")
         .attr("class", "node")
-        .attr("r", this.node_width)
+        .attr("r", this.node_radius)
         .call(this.force.drag);
     this.node_selection.exit().remove();
 
@@ -140,12 +164,13 @@ NetworkGraph = function(args) {
     new_label.append("svg:text")
         .attr("x", 8)
         .attr("y", ".31em")
-        .attr("class", "shadow")
+        .attr("class", "label shadow")
         .text(function(d) { return d.name; });
 
     new_label.append("svg:text")
         .attr("x", 8)
         .attr("y", ".31em")
+        .attr("class", "label")
         .text(function(d) { return d.name; });
 
     // restart the layout
